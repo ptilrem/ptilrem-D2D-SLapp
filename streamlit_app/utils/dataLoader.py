@@ -40,4 +40,26 @@ class DataLoader:
     def __init__(self, csv_path: str = 'data/reservoirs.csv'):
         self.csv_path = csv_path
 
-    
+    @st.cache_data
+    def load(_self) -> pd.DataFrame:
+        """
+        Reads the CSV file, renames columns to english, 
+        converts dates to datetime format, and sorts the data chronologically.
+        Data is cached so the file is only read once per session,
+        rather than every time a widget is interacted with.
+        """
+        df = pd.read_csv(_self.csv_path)
+        df = df.rename(columns=_self.column_rename_dict)
+        df['date_id'] = pd.to_datetime(df['date_id'])
+        df = df.sort_values(by='date_id')
+        return df
+
+    def get_measurement_columns(self) -> list:
+        """
+        Returns the list of measurement columns that can be plotted.
+        Keeping this command here makes it easier to change the names later
+        if we think the translations are off and needs updating. This way
+        the pages don't get hard coded with the column names so we only need
+        to change it here.
+        """
+        return self.measurement_columns
