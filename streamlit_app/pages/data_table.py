@@ -1,7 +1,7 @@
 # Import necessary libraries
 import streamlit as st
 import pandas as pd
-from utils.data import DataLoader
+from utils.dataLoader import DataLoader
 
 # Set title of the page
 st.title("📋 Data Table")
