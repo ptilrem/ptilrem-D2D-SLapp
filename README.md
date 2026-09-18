@@ -1,2 +1,8 @@
 # ptilrem-D2D-SLapp
-Data to decision Streamlit app visualizing and analysing weather and energy production
+
+- Version: 1.0
+- Author: ptilrem
+
+'''
+Depoyed to Streamlit cloud at: (https://ptilrem-d2d-slapp.streamlit.app/)
+'''
