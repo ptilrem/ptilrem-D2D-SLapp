@@ -38,6 +38,8 @@ slider_range = st.select_slider(
 mask = (df['year_month'] >= slider_range[0]) & (df['year_month'] <= slider_range[1])
 df_filtered = df[mask]
 
+range_label = f"{slider_range[0]} to {slider_range[1]}"
+
 # Plot the data using Plotly Express with the selected columns
 if column_choice == "All Columns":
     fig = px.line(
