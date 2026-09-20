@@ -1,3 +1,4 @@
+# Import necessary libraries
 import streamlit as st
 
 # This step is not really necessary as Streamlit will automatically put
@@ -10,10 +11,12 @@ st.set_page_config(
     layout = "wide" # Makes the app use the full width of the browser
 )
 
-home_page = st.Page("pages/home_content.py", title="Home", icon="🏠", default=True)
-table_page = st.Page("pages/data_table.py", title="Data Table", icon="📋")
-plot_page = st.Page("pages/data_plot.py", title="Data Plot", icon="📈")
-about_page = st.Page("pages/about.py", title="About", icon="ℹ️")
+# Set up the pages with icons titles for the side bar
+home_page = st.Page("pages/page1_home_content.py", title="Home", icon="🏠", default=True)
+table_page = st.Page("pages/page2_data_table.py", title="Data Table", icon="📋")
+plot_page = st.Page("pages/page3_data_plot.py", title="Data Plot", icon="📈")
+about_page = st.Page("pages/page4_about.py", title="About", icon="ℹ️")
 
-pgs = st.navigation([home_page, table_page, plot_page, about_page]) # Order of the pages in the sidebar
+# Order the pages in the sidebar
+pgs = st.navigation([home_page, table_page, plot_page, about_page])
 pgs.run()
