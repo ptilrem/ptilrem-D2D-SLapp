@@ -48,9 +48,12 @@ class DataLoader:
         converts dates to datetime format, and sorts the data chronologically.
         Data is cached so the file is only read once per session,
         rather than every time a widget is interacted with.
+        Filtered to 'NO' as having 9 data points per date would be too noisy,
+        this way it shows the national levels only
         """
         df = pd.read_csv(_self.csv_path)
         df = df.rename(columns=_self.column_rename_dict)
+        df = df[df['area_type'] == 'NO']
         df['date_id'] = pd.to_datetime(df['date_id'])
         df = df.sort_values(by='date_id')
         return df
