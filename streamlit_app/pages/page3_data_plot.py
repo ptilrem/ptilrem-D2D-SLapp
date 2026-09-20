@@ -57,4 +57,5 @@ else:
     )
 
 # Display the plot in the Streamlit app
+fig.update_layout(template="plotly_dark")
 st.plotly_chart(fig, use_container_width=True)
