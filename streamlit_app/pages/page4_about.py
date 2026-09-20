@@ -44,7 +44,7 @@ st.subheader("Links")
 st.markdown(
     """
     - 📊 [Data source: NVE Magasinstatistikk](https://www.nve.no/energi/analyser-og-statistikk/om-magasinstatistikken/)
-    - 💻 [GitHub repository](https://github.com/yourusername/your-repo-name)
+    - 💻 [GitHub repository](https://github.com/ptilrem/ptilrem-D2D-SLapp)
     """
 )
 

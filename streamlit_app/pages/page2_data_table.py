@@ -5,7 +5,6 @@ from utils.dataLoader import DataLoader
 
 # Set title of the page
 st.title("📋 Data Table")
-st.write("Placeholder - table view of the reservior data")
 
 # Use the DataLoader class to load the reservoir data
 loader = DataLoader()
