@@ -46,5 +46,3 @@ st.dataframe(
     hide_index=True,
     use_container_width=True,
 )
-
-st.caption("Note: The data includes all regions/area types for this exercise, so there are multiple values per week")
