@@ -18,14 +18,14 @@ A Streamlit dashboard exploring weekly Norwegian reservoir fill data from NVE (N
 ├── data/
 │   └── reservoirs.csv          # Raw weekly reservoir data from NVE
 ├── notebook/
-│   └── assignment1.ipynb       # Data exploration, cleaning, and plotting (Assignment 1 lab work)
+│   └── assignment1.ipynb       # Data exploration, cleaning, and plotting from the assignment
 ├── streamlit_app/
 │   ├── Home.py                 # Sets up page config and navigation
 │   ├── pages/
-│   │   ├── home_content.py     # Home page content
-│   │   ├── data_table.py       # Data table view with LineChartColumn trends
-│   │   ├── data_plot.py        # Interactive plot with column/date-range filters
-│   │   └── about.py            # Project background, data source, and links etc.
+│   │   ├── page1_home_content.py     # Home page content
+│   │   ├── page2_data_table.py       # Data table view with LineChartColumn trends
+│   │   ├── page3_data_plot.py        # Interactive plot with column/date-range filters
+│   │   └── page4_about.py            # Project background, data source, and links etc.
 │   ├── utils/
 │   │   └── data.py             # DataLoader class: reads, renames, and prepares the data
 │   └── .streamlit/
