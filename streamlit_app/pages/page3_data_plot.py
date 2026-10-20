@@ -1,61 +1,53 @@
+"""NVE plots grouped by area type and area number."""
 # Import necessary libraries
-import streamlit as st
-import pandas as pd
 import plotly.express as px
+import streamlit as st
 from utils.dataLoader import DataLoader
 
-# Set title
-st.title("📈 Data Plot")
-
-# Load the data
+st.title("📈 Reservoir Data Plots")
 loader = DataLoader()
-df = loader.load()
 
-# Create the options for the slider by using the unique years and months
-df['year_month'] = df['date_id'].dt.to_period('M').astype(str)
-slider_options = sorted(df['year_month'].unique())
+try:
+    df = loader.load()
+except Exception as exc:
+    st.error(f"Could not load NVE data: {exc}")
+    st.stop()
 
-st.subheader("Filter options")
+area_type = st.radio("Area type", ["EL", "NO", "VASS"], horizontal=True)
+df = df[df["area_type"] == area_type].copy()
+if df.empty:
+    st.info("No data for this area type.")
+    st.stop()
 
-# Creates the options for the drop-down menu, making the "All columns" option,
-# and importing the other columns from the DataLoader class.
-# The format_funct function removes underscores and capitalizes the first letter of each word
-# to make the drop-down menu nicer to look at
-column_choice = st.selectbox(
-    "Select a measurement to plot",
-    options=["All Columns"] + loader.get_measurement_columns(),
-    format_func=lambda x: x if x == "All Columns" else x.replace('_', ' ').title()
+# Choose which months from NVE's response to display on both reservoir pages.
+df["year_month"] = df["date_id"].dt.strftime("%Y-%m")
+months = sorted(df["year_month"].unique().tolist())
+previous = st.session_state.get("nve_month_range", (months[0], months[0]))
+if previous[0] not in months or previous[1] not in months:
+    previous = (months[0], months[0])
+month_range = st.select_slider(
+    "Select month interval", options=months, value=previous
+)
+st.session_state["nve_month_range"] = month_range
+st.caption("The API provides the full history; the slider selects which records are shown.")
+
+columns = loader.get_measurement_columns()
+measurement = st.selectbox(
+    "Measurement", ["All measurements"] + columns,
+    format_func=lambda x: x.replace("_", " ").title(),
+)
+selected = df[df["year_month"].between(*month_range)].copy()
+if selected.empty:
+    st.info("No measurements for the selected interval.")
+    st.stop()
+
+# Every individual area number gets its own line.
+selected["Area"] = area_type + " " + selected["area_number"].astype(int).astype(str)
+plot_columns = columns if measurement == "All measurements" else [measurement]
+for column in plot_columns:
+    figure = px.line(
+        selected, x="date_id", y=column, color="Area",
+        title=column.replace("_", " ").title(),
+        labels={"date_id": "Date", column: column.replace("_", " ").title()},
     )
-
-# Sets the options for the slider and the default value to the first month
-slider_range = st.select_slider(
-    "Select month range to plot",
-    options=slider_options,
-    value=(slider_options[0], slider_options[0])
-    )
-
-# Filter for the selected month range
-mask = (df['year_month'] >= slider_range[0]) & (df['year_month'] <= slider_range[1])
-df_filtered = df[mask]
-
-range_label = f"{slider_range[0]} to {slider_range[1]}"
-
-# Plot the data using Plotly Express with the selected columns
-if column_choice == "All Columns":
-    fig = px.line(
-        df_filtered,
-        x='date_id',
-        y=loader.get_measurement_columns(),
-        title=f'All measurements from {range_label}',
-        labels={'value': 'Value', 'date_id': 'Date', 'variable': 'Metric'},
-    )
-else:
-    fig = px.line(
-        df_filtered, x='date_id', y=column_choice,
-        title=f'{column_choice.replace("_", " ").title()} from {range_label}',
-        labels={column_choice: column_choice.replace('_', ' ').title(), 'date_id': 'Date'},
-    )
-
-# Display the plot in the Streamlit app
-fig.update_layout(template="plotly_dark")
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(figure, use_container_width=True)

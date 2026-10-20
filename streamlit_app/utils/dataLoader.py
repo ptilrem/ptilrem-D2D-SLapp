@@ -1,69 +1,68 @@
 # Import necessary libraries
 import pandas as pd
+import requests
 import streamlit as st
 
+
 class DataLoader:
-    """
-    Handles reading and preparing the data for the app.
-    Putting it into a class allows for a smoother transition
-    to MongoDB in the future, and only requires changes in the class
-    rather than throughout the other scripts.
-    """
+    """Keep API access and data preparation in one place for all NVE pages."""
 
-    # Dictionary for translating the column names from Norwegian to English
-    # Copied from the Jupyter notebook part of the assignment (see notebook/assignment1.ipynb)
+    api_url = "https://biapi.nve.no/magasinstatistikk/api/Magasinstatistikk/HentOffentligData"
+
+    # Preserve the English column names used in Assignment 1.
     column_rename_dict = {
-    'dato_Id': 'date_id',
-    'omrType': 'area_type',
-    'omrnr': 'area_number',
-    'iso_aar': 'iso_year',
-    'iso_uke': 'iso_week',
-    'fyllingsgrad': 'fill_percentage',
-    'kapasitet_TWh': 'capacity_TWh',
-    'fylling_TWh': 'stored_energy_TWh', # Unsure. Energifylling: Described as capacity times fill percentage
-    'neste_Publiseringsdato': 'next_publish_date',
-    'fyllingsgrad_forrige_uke': 'fill_percentage_last_week',
-    'endring_fyllingsgrad': 'change_fill_percentage'
-}
+        "dato_Id": "date_id",
+        "omrType": "area_type",
+        "omrnr": "area_number",
+        "iso_aar": "iso_year",
+        "iso_uke": "iso_week",
+        "fyllingsgrad": "fill_percentage",
+        "kapasitet_TWh": "capacity_TWh",
+        "fylling_TWh": "stored_energy_TWh",
+        "neste_Publiseringsdato": "next_publish_date",
+        "fyllingsgrad_forrige_uke": "fill_percentage_last_week",
+        "endring_fyllingsgrad": "change_fill_percentage",
+    }
 
-    # The measurements worth plotting (float values).
-    # This exludes the identifiers and classifiers
-    # Copied from the Jupyter notebook part of the assignment (see notebook/assignment1.ipynb)
     measurement_columns = [
-    'fill_percentage',
-    'capacity_TWh',
-    'stored_energy_TWh',
-    'fill_percentage_last_week',
-    'change_fill_percentage',
-]
+        "fill_percentage",
+        "capacity_TWh",
+        "stored_energy_TWh",
+        "fill_percentage_last_week",
+        "change_fill_percentage",
+    ]
 
-    # Path default is set to the reservoirs.csv file, however it can be changed to any other path if specified
-    def __init__(self, csv_path: str = 'data/reservoirs.csv'):
-        self.csv_path = csv_path
-
-    @st.cache_data
+    @st.cache_data(ttl=3600)
     def load(_self) -> pd.DataFrame:
-        """
-        Reads the CSV file, renames columns to english, 
-        converts dates to datetime format, and sorts the data chronologically.
-        Data is cached so the file is only read once per session,
-        rather than every time a widget is interacted with.
-        Filtered to 'NO' as having 9 data points per date would be too noisy,
-        this way it shows the national levels only
-        """
-        df = pd.read_csv(_self.csv_path)
-        df = df.rename(columns=_self.column_rename_dict)
-        df = df[df['area_type'] == 'NO']
-        df['date_id'] = pd.to_datetime(df['date_id'])
-        df = df.sort_values(by='date_id')
-        return df
+        """Download NVE data, rename columns, parse dates, and sort observations."""
+        response = requests.get(DataLoader.api_url, timeout=90)
+        response.raise_for_status()
+        df = pd.DataFrame(response.json()).rename(columns=DataLoader.column_rename_dict)
+
+        # ISO year/week gives a usable Monday date if date_id is absent.
+        iso_monday = pd.to_datetime(
+            df["iso_year"].astype(str) + "-W" +
+            df["iso_week"].astype(str).str.zfill(2) + "-1",
+            format="%G-W%V-%u", errors="coerce",
+        )
+        if "date_id" in df.columns:
+            df["date_id"] = pd.to_datetime(df["date_id"], errors="coerce").fillna(iso_monday)
+        else:
+            df["date_id"] = iso_monday
+
+        df["area_number"] = pd.to_numeric(df["area_number"], errors="coerce")
+        for column in DataLoader.measurement_columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
+
+        # The API may represent fill as a fraction, e.g. 0.7 = 70%.
+        for column in ["fill_percentage", "fill_percentage_last_week", "change_fill_percentage"]:
+            if df[column].abs().max() <= 1.05:
+                df[column] *= 100
+
+        # Do not filter to NO: the assignment requires EL, NO and VASS.
+        return df.dropna(subset=["date_id", "area_number"]).sort_values("date_id")
 
     def get_measurement_columns(self) -> list:
-        """
-        Returns the list of measurement columns that can be plotted.
-        Keeping this command here makes it easier to change the names later
-        if we think the translations are off and needs updating. This way
-        the pages don't get hard coded with the column names so we only need
-        to change it here.
-        """
+        """Return the five measurement names used in the table and plots."""
         return self.measurement_columns
+

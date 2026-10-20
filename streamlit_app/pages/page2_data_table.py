@@ -1,47 +1,51 @@
+"""NVE table showing first-month trends for each area number."""
 # Import necessary libraries
-import streamlit as st
 import pandas as pd
+import streamlit as st
 from utils.dataLoader import DataLoader
 
-# Set title of the page
-st.title("📋 Data Table")
-
-# Use the DataLoader class to load the reservoir data
+st.title("📋 Reservoir Data Table")
 loader = DataLoader()
-df = loader.load()
 
-# Isolate the first calendar month present in the dataset
-first_date = df['date_id'].min()
-first_month_mask = (
-    (df['date_id'].dt.year == first_date.year) 
-& (df['date_id'].dt.month == first_date.month)
-)
+try:
+    df = loader.load()
+except Exception as exc:
+    st.error(f"Could not load NVE data: {exc}")
+    st.stop()
 
-df_first_month = df[first_month_mask]
+area_type = st.radio("Area type", ["EL", "NO", "VASS"], horizontal=True)
+df = df[df["area_type"] == area_type].copy()
 
-st.write(f"Showing data for: {first_date.strftime('%B %Y')}")
+# The plots page stores the selected month interval in session state.
+df["year_month"] = df["date_id"].dt.strftime("%Y-%m")
+months = sorted(df["year_month"].unique().tolist())
+if not months:
+    st.info("No data for this area type.")
+    st.stop()
+start, end = st.session_state.get("nve_month_range", (months[0], months[0]))
+selected = df[df["year_month"].between(start, end)]
+if selected.empty:
+    st.info("No data in this date interval. Choose another range on Reservoir Plots.")
+    st.stop()
 
-# Build one row per measurement column, where each row's Trend cell holds
-# the list of values for that column across the first month of data
-table_data = {
-    'Column': [],
-    'Trend (first month)': [],
-}
+first_month = selected["year_month"].min()
+first_month_data = selected[selected["year_month"] == first_month]
+st.write(f"First month of selected interval: **{first_month}**")
 
-for col in loader.get_measurement_columns():
-    table_data['Column'].append(col.replace('_', ' ').title())
-    table_data['Trend (first month)'].append(df_first_month[col].tolist())
-
-display_df = pd.DataFrame(table_data)
+# One row for each measurement and area number; values become mini line charts.
+rows = []
+for area_number, area_rows in first_month_data.groupby("area_number"):
+    area_rows = area_rows.sort_values("date_id")
+    for column in loader.get_measurement_columns():
+        rows.append({
+            "Area number": int(area_number),
+            "Measurement": column.replace("_", " ").title(),
+            "Trend": area_rows[column].dropna().tolist(),
+        })
 
 st.dataframe(
-    display_df,
-    column_config={
-        'Trend (first month)': st.column_config.LineChartColumn(
-            'Trend (first month)',
-            help='Values across the first calendar month of data',
-        ),
-    },
+    pd.DataFrame(rows),
+    column_config={"Trend": st.column_config.LineChartColumn("Trend")},
     hide_index=True,
     use_container_width=True,
 )

@@ -12,11 +12,12 @@ st.set_page_config(
 )
 
 # Set up the pages with icons titles for the side bar
-home_page = st.Page("pages/page1_home_content.py", title="Home", icon="🏠", default=True)
-table_page = st.Page("pages/page2_data_table.py", title="Data Table", icon="📋")
-plot_page = st.Page("pages/page3_data_plot.py", title="Data Plot", icon="📈")
-about_page = st.Page("pages/page4_about.py", title="About", icon="ℹ️")
+home = st.Page("pages/page1_home_content.py", title="Home", icon="🏠", default=True)
+table = st.Page("pages/page2_data_table.py", title="Reservoir Table", icon="📋")
+plots = st.Page("pages/page3_data_plot.py", title="Reservoir Plots", icon="📈")
+flows = st.Page("pages/page4_electricity_transfers.py", title="Electricity Transfers", icon="⚡")
+about = st.Page("pages/page5_about.py", title="About", icon="ℹ️")
 
 # Order the pages in the sidebar
-pgs = st.navigation([home_page, table_page, plot_page, about_page])
-pgs.run()
+navigation = st.navigation([home, table, plots, flows, about])
+navigation.run()
