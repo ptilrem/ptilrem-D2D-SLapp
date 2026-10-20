@@ -27,7 +27,7 @@ A Streamlit dashboard exploring weekly Norwegian reservoir fill data from NVE (N
 │   │   ├── page3_data_plot.py        # Interactive plot with column/date-range filters
 │   │   └── page4_about.py            # Project background, data source, and links etc.
 │   ├── utils/
-│   │   └── data.py             # DataLoader class: reads, renames, and prepares the data
+│   │   └── dataLoader.py             # DataLoader class: reads, renames, and prepares the data
 │   └── .streamlit/
 │       └── config.toml         # App theme settings
 ├── requirements.txt            # App dependencies
