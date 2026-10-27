@@ -14,9 +14,10 @@ st.write(
 
 st.subheader("Cross-border transfers (ENTSO-E / MongoDB)")
 st.write(
-    "The Electricity Transfers page displays daily energy summaries prepared in "
-    "Jupyter with Spark and stored in MongoDB Atlas. Until ENTSO-E API access is approved, "
-    "the displayed values are clearly labeled synthetic demonstration data."
+    "The Electricity Transfers page displays real cross-border electricity data "
+    "from the ENTSO-E Transparency Platform. The measurements are processed "
+    "using Spark, stored in Cassandra, and aggregated into daily energy totals "
+    "before being uploaded to MongoDB Atlas."
 )
 
 st.info("Use the sidebar to navigate between pages.")

@@ -16,10 +16,11 @@ st.write(
 
 st.subheader("Transfer statistics")
 st.write(
-    "The notebook uses Spark to store raw electricity-transfer data in Cassandra, "
-    "aggregate daily energy, and upload the resulting records to MongoDB Atlas "
-    "for this Streamlit app. Synthetic demonstration data are used until "
-    "ENTSO-E approves API access."
+    "The notebook retrieves real cross-border electricity transfers from the "
+    "ENTSO-E Transparency Platform, covering nine international connections "
+    "in both directions over two years. Spark stores the measurements in "
+    "Cassandra and calculates daily energy totals, which are uploaded to "
+    "MongoDB Atlas for visualization in this Streamlit app."
 )
 
 st.subheader("Links")
