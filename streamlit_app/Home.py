@@ -15,7 +15,7 @@ st.set_page_config(
 home = st.Page("pages/page1_home_content.py", title="Home", icon="🏠", default=True)
 table = st.Page("pages/page2_data_table.py", title="Reservoir Table", icon="📋")
 plots = st.Page("pages/page3_data_plot.py", title="Reservoir Plots", icon="📈")
-flows = st.Page("pages/page4_electricity_transfers.py", title="Electricity Transfers", icon="⚡")
+flows = st.Page("pages/page4_electricity_transfers.py", title="Cross-border Electricity Transfers", icon="📊")
 about = st.Page("pages/page5_about.py", title="About", icon="ℹ️")
 
 # Order the pages in the sidebar
