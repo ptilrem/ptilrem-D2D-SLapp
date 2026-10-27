@@ -5,22 +5,25 @@
 
 # Assignment Dashboard
 
-A Streamlit dashboard exploring Norwegian hydropower reservoir statistics and cross-border electricity transfers. This is part of a four-part university project in which each assignment builds on the previous one.
+**IND320 · Assignment 2** | [Live Streamlit app](https://ptilrem-d2d-slapp.streamlit.app/) | [GitHub repository](https://github.com/ptilrem/ptilrem-D2D-SLapp)
 
-In Assignment 1, the app read reservoir statistics from a local CSV file. In Assignment 2, reservoir data comes directly from the NVE Magasinstatistikk API, and a new page displays electricity-transfer data stored in MongoDB Atlas.
+A Streamlit dashboard for exploring Norwegian hydropower reservoirs and cross-border electricity transfers. This is part of a four-part course project, with each assignment building on the previous one.
 
-## Links
+## Features
 
-- **GitHub repository:** https://github.com/ptilrem/ptilrem-D2D-SLapp
-- **Live app:** https://ptilrem-d2d-slapp.streamlit.app/
-- **Assignment 1 notebook:** notebook/assignment1.ipynb / notebook/assignment1.pdf
-- **Assignment 2 notebook:** notebook/assignment2.ipynb (rename or update this path to match the submitted file)
+- **Reservoir statistics:** Weekly data retrieved directly from the [NVE Magasinstatistikk API](https://www.nve.no/energi/analyser-og-statistikk/om-magasinstatistikken/). Explore EL, NO and VASS areas through interactive tables and plots.
+- **Electricity transfers:** Real data from the [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/), showing electricity flowing into and out of Norway. Compare annual totals and daily flows by connection, year and month.
+
+## Data pipeline
+
+- **NVE:** API → data preparation → Streamlit.
+- **ENTSO-E:** API → Spark → Cassandra → daily aggregation → MongoDB Atlas → Streamlit.
+
+The Jupyter notebooks contain the data processing, validation and visualizations. The Streamlit app presents the results interactively.
 
 ## Project structure
 
 ```
-├── data/
-│   └── reservoirs.csv          # Raw weekly reservoir data from NVE
 ├── notebook/
 │   └── assignment1.ipynb       # Data exploration, cleaning, and plotting from the assignment
 ├── streamlit_app/
@@ -39,7 +42,7 @@ In Assignment 1, the app read reservoir statistics from a local CSV file. In Ass
 └── README.md
 ```
 
-## Running locally
+## Run the app locally
 
 ```bash
 git clone https://github.com/ptilrem/ptilrem-D2D-SLapp.git
@@ -49,11 +52,12 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 streamlit run streamlit_app/Home.py
 ```
+The electricity-transfer page requires MONGODB_URI to be configured in Streamlit secrets. Credentials and API tokens are not included in the repository.
 
-## Branching workflow
+## Branches
 
-- `main` — holds the latest **approved** hand-in.
-- `dev` — active working branch for the current assignment.
+- `main` — the submitted version under review.
+- `dev` — ongoing improvements, merged into main after review.
 
 Each branch has its own deployed Streamlit app, so ongoing work never affects the version under review. Once an assignment is approved, `dev` is merged into `main`.
 
