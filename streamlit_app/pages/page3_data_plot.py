@@ -13,7 +13,20 @@ except Exception as exc:
     st.error(f"Could not load NVE data: {exc}")
     st.stop()
 
-area_type = st.radio("Area type", ["EL", "NO", "VASS"], horizontal=True)
+
+# Remember the selected area type across reservoir pages.
+area_options = ["EL", "NO", "VASS"]
+saved_area = st.session_state.get("nve_area_type", "EL")
+
+area_type = st.radio(
+    "Area type",
+    area_options,
+    index=area_options.index(saved_area),
+    horizontal=True
+)
+
+st.session_state["nve_area_type"] = area_type
+
 df = df[df["area_type"] == area_type].copy()
 if df.empty:
     st.info("No data for this area type.")
