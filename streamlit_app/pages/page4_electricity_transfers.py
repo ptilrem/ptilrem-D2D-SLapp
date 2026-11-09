@@ -115,6 +115,7 @@ with right:
 
     # Filter the daily measurements by year and selected months.
     selected = flows[
+        (flows["connection"] == connection) &
         (flows["year"] == year) &
         (flows["month"].isin(months or []))
     ].copy()
@@ -132,7 +133,7 @@ with right:
             x="date",
             y="energy_mwh",
             color="Series",
-            title=f"Daily flow energy ({year})",
+            title=f"Daily electricity transfers — {connection} ({year})",
             labels={
                 "date": "Date (UTC)",
                 "energy_mwh": "Energy per day (MWh)"
