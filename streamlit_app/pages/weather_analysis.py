@@ -4,6 +4,9 @@ import streamlit as st
 from pathlib import Path
 import pandas as pd
 import requests
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.fft import dct, idct
 
 st.title("🌦️ Weather Analysis")
 st.write(
@@ -126,8 +129,61 @@ spc_tab, lof_tab = st.tabs([
 ])
 
 with spc_tab:
-    st.subheader("Precipitation Outliers")
-    st.write("DCT and SPC analysis will appear here.")
+    st.subheader("Precipitation Outliers — DCT/SPC")
+
+    # Adjustable parameters for the outlier detection.
+    cutoff = st.slider("DCT frequency cutoff", 1, 50, 12)
+    n_std = st.slider("Standard deviations", 1.0, 5.0, 3.0, 0.5)
+
+    precipitation = daily_weather["precipitation_mm"].to_numpy()
+
+    # Remove slow variations using the Discrete Cosine Transform.
+    coefficients = dct(precipitation, norm="ortho")
+    coefficients[cutoff:] = 0
+    trend = idct(coefficients, norm="ortho")
+    satv = precipitation - trend
+
+    # Calculate robust SPC boundaries using median and MAD.
+    centre = np.median(satv)
+    sigma = 1.4826 * np.median(np.abs(satv - centre))
+
+    lower = trend + centre - n_std * sigma
+    upper = trend + centre + n_std * sigma
+
+    # Identify precipitation values outside the boundaries.
+    mask = (precipitation < lower) | (precipitation > upper)
+    outliers = daily_weather.loc[
+        mask, ["time", "precipitation_mm"]
+    ]
+
+    # Display precipitation, SPC boundaries and detected outliers.
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(
+        daily_weather["time"],
+        precipitation,
+        label="Daily precipitation"
+    )
+    ax.plot(daily_weather["time"], lower, "--", label="Lower SPC boundary")
+    ax.plot(daily_weather["time"], upper, "--", label="Upper SPC boundary")
+    ax.scatter(
+        outliers["time"],
+        outliers["precipitation_mm"],
+        color="red",
+        label="Outliers",
+        zorder=3
+    )
+
+    ax.set_title(f"Precipitation Outliers — {region} (2024)")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Precipitation (mm/day)")
+    ax.legend()
+    fig.tight_layout()
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+    st.metric("Outliers detected", len(outliers))
+    st.dataframe(outliers, hide_index=True)
 
 with lof_tab:
     st.subheader("Temperature Anomalies")
