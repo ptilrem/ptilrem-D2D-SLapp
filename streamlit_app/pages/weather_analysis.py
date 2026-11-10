@@ -1,6 +1,22 @@
 """Weather analysis using historical Open-Meteo ERA5 data."""
 
 import streamlit as st
+from pathlib import Path
+import pandas as pd
+
+st.session_state["nve_area_type"] = area_type
+
+# Load the coordinates generated in Assignment 3 notebook
+@st.cache_data
+def load_locations():
+    path = Path(__file__).resolve().parents[2] / "data" / "region_locations.parquet"
+    return pd.read_parquet(path)
+
+
+locations = load_locations()
+
+# TEMP TEST: Remove once the coordinate loading is verified.
+st.caption(f"Sampled locations loaded: {len(locations):,}")
 
 st.title("🌦️ Weather Analysis")
 st.write(
