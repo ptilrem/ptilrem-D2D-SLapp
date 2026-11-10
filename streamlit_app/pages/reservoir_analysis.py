@@ -4,6 +4,8 @@ import streamlit as st
 from utils.dataLoader import DataLoader
 import matplotlib.pyplot as plt
 from statsmodels.tsa.seasonal import STL
+import pandas as pd
+from scipy.signal import spectrogram
 
 st.title("💧 Reservoir Analysis")
 
@@ -73,4 +75,46 @@ with stl_tab:
 
 with spectrogram_tab:
     st.subheader("Spectrogram")
-    st.write("Spectrogram analysis will appear here.")
+
+    # Adjustable spectrogram parameters.
+    window_length = st.slider("Window length (weeks)", 52, 156, 104)
+    overlap = st.slider("Window overlap (weeks)", 0, window_length - 1, window_length // 2)
+
+    # Prepare weekly reservoir filling data.
+    filling = (
+        df.set_index("date_id")["fill_percentage"]
+        .astype(float)
+        .resample("W-SUN")
+        .mean()
+        .interpolate()
+    )
+
+    # Calculate the spectrogram.
+    frequencies, times, power = spectrogram(
+        filling.to_numpy(),
+        fs=1,
+        nperseg=window_length,
+        noverlap=overlap,
+        detrend="linear",
+        scaling="spectrum"
+    )
+
+    dates = filling.index[0] + pd.to_timedelta(times * 7, unit="D")
+    cycles_per_year = frequencies * 52
+
+    # Plot the frequency patterns over time.
+    fig, ax = plt.subplots(figsize=(12, 5))
+    image = ax.pcolormesh(
+        dates, cycles_per_year, power, shading="auto"
+    )
+
+    ax.set_title(f"Reservoir Filling Spectrogram — {area_type} {area_number}")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Frequency (cycles per year)")
+    ax.set_ylim(0, 4)
+
+    fig.colorbar(image, ax=ax, label="Spectral power")
+    fig.tight_layout()
+
+    st.pyplot(fig)
+    plt.close(fig)
