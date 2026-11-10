@@ -100,10 +100,24 @@ def load_weather(region):
 with st.spinner("Loading historical ERA5 weather data..."):
     weather = load_weather(region)
 
-# TEMP TEST: Remove when the analysis plots are working.
-st.caption(f"Hourly weather observations: {len(weather):,}")
-display_columns = ["time", "temperature_2m", "precipitation"]
-st.dataframe(weather[display_columns].head(), hide_index=True)
+# Prepare daily weather measurements for the analysis plots.
+daily_weather = (
+    weather.set_index("time")
+    .resample("D")
+    .agg({
+        "precipitation": "sum",
+        "temperature_2m": "mean"
+    })
+    .reset_index()
+)
+
+daily_weather = daily_weather.rename(columns={
+    "precipitation": "precipitation_mm",
+    "temperature_2m": "temperature_c"
+})
+
+# TEMP TEST: Remove after verifying the daily aggregation.
+st.caption(f"Daily weather observations: {len(daily_weather)}")
 
 # Separate tabs for the two weather analyses.
 spc_tab, lof_tab = st.tabs([
