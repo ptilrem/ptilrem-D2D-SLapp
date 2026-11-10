@@ -60,6 +60,16 @@ st.caption(f"Selected region: {region} — {len(region_points):,} sampled locati
 # Download and average historical ERA5 weather for the selected region.
 @st.cache_data
 def load_weather(region):
+    # Use saved 100-location ERA5 data when available.
+    saved_file = (
+        Path(__file__).resolve().parents[2]
+        / "data"
+        / f"weather_{region}_2024_100locations.parquet"
+    )
+
+    if saved_file.exists():
+        return pd.read_parquet(saved_file)
+
     if region == "Norway":
         # Use one location from each electricity region.
         points = locations[
