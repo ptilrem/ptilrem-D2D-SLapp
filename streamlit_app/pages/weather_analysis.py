@@ -32,8 +32,25 @@ def load_locations():
 
 locations = load_locations()
 
-# TEMP TEST: Remove once the coordinate loading is verified.
-st.caption(f"Sampled locations loaded: {len(locations):,}")
+# Match the selected reservoir area to its sampled weather locations.
+if area_type == "EL":
+    area_number = st.selectbox("Area number", [1, 2, 3, 4, 5])
+    region = f"NO{area_number}"
+
+elif area_type == "VASS":
+    area_number = st.selectbox("Area number", [1, 2, 3])
+    region = {1: "East", 2: "West", 3: "North"}[area_number]
+
+else:
+    region = "Norway"
+
+# Select the coordinates belonging to the chosen region.
+if region == "Norway":
+    region_points = locations[locations["area"].str.startswith("NO")]
+else:
+    region_points = locations[locations["area"] == region]
+
+st.caption(f"Selected region: {region} — {len(region_points):,} sampled locations")
 
 # Separate tabs for the two weather analyses.
 spc_tab, lof_tab = st.tabs([
