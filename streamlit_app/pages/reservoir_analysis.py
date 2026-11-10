@@ -2,6 +2,8 @@
 
 import streamlit as st
 from utils.dataLoader import DataLoader
+import matplotlib.pyplot as plt
+from statsmodels.tsa.seasonal import STL
 
 st.title("💧 Reservoir Analysis")
 
@@ -37,7 +39,37 @@ stl_tab, spectrogram_tab = st.tabs([
 
 with stl_tab:
     st.subheader("Seasonal-Trend Decomposition")
-    st.write("STL analysis will appear here.")
+
+    # Allow users to adjust the STL parameters.
+    seasonal = st.slider("Seasonal smoother", 7, 51, 13, step=2)
+    trend = st.slider("Trend smoother", 55, 155, 101, step=2)
+    robust = st.checkbox("Robust fitting", value=True)
+
+    # Prepare a regular weekly reservoir filling series.
+    filling = (
+        df.set_index("date_id")["fill_percentage"]
+        .astype(float)
+        .resample("W-SUN")
+        .mean()
+        .interpolate()
+    )
+
+    # Decompose the data using a 52-week seasonal cycle.
+    result = STL(
+        filling,
+        period=52,
+        seasonal=seasonal,
+        trend=trend,
+        robust=robust
+    ).fit()
+
+    fig = result.plot()
+    fig.set_size_inches(12, 9)
+    fig.suptitle(f"STL Decomposition — {area_type} {area_number}")
+    fig.tight_layout()
+
+    st.pyplot(fig)
+    plt.close(fig)
 
 with spectrogram_tab:
     st.subheader("Spectrogram")
