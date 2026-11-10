@@ -55,8 +55,6 @@ if region == "Norway":
 else:
     region_points = locations[locations["area"] == region]
 
-st.caption(f"Selected region: {region} — {len(region_points):,} sampled locations")
-
 # Download and average historical ERA5 weather for the selected region.
 @st.cache_data
 def load_weather(region):
@@ -68,7 +66,7 @@ def load_weather(region):
     )
 
     if saved_file.exists():
-        return pd.read_parquet(saved_file)
+        return pd.read_parquet(saved_file), 100
 
     if region == "Norway":
         # Use one location from each electricity region.
@@ -108,11 +106,21 @@ def load_weather(region):
     )
     weather["time"] = pd.to_datetime(weather["time"], utc=True)
 
-    return weather
+    return weather, len(points)
+
 
 # Load the selected region's weather data.
-with st.spinner("Loading historical ERA5 weather data..."):
-    weather = load_weather(region)
+try:
+    with st.spinner("Loading historical ERA5 weather data..."):
+        weather, n_locations = load_weather(region)
+except requests.HTTPError as error:
+    st.error(f"Could not download weather data for {region}: {error}")
+    st.stop()
+
+st.caption(
+    f"Region: {region}. Hourly ERA5 data averaged over {n_locations} "
+    f"of {len(region_points):,} sampled locations."
+)
 
 # Prepare daily weather measurements for the analysis plots.
 daily_weather = (
@@ -129,9 +137,6 @@ daily_weather = daily_weather.rename(columns={
     "precipitation": "precipitation_mm",
     "temperature_2m": "temperature_c"
 })
-
-# TEMP TEST: Remove after verifying the daily aggregation.
-st.caption(f"Daily weather observations: {len(daily_weather)}")
 
 # Separate tabs for the two weather analyses.
 spc_tab, lof_tab = st.tabs([

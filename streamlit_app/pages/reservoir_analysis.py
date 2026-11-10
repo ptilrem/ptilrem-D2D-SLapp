@@ -33,6 +33,15 @@ area_number = st.selectbox("Area number", area_numbers)
 
 df = df[df["area_number"] == area_number].copy()
 
+# Prepare a regular weekly filling series, used by both tabs.
+filling = (
+    df.set_index("date_id")["fill_percentage"]
+    .astype(float)
+    .resample("W-SUN")
+    .mean()
+    .interpolate()
+)
+
 # Two tabs for the required reservoir analyses.
 stl_tab, spectrogram_tab = st.tabs([
     "STL Decomposition",
@@ -46,15 +55,6 @@ with stl_tab:
     seasonal = st.slider("Seasonal smoother", 7, 51, 13, step=2)
     trend = st.slider("Trend smoother", 55, 155, 101, step=2)
     robust = st.checkbox("Robust fitting", value=True)
-
-    # Prepare a regular weekly reservoir filling series.
-    filling = (
-        df.set_index("date_id")["fill_percentage"]
-        .astype(float)
-        .resample("W-SUN")
-        .mean()
-        .interpolate()
-    )
 
     # Decompose the data using a 52-week seasonal cycle.
     result = STL(
@@ -79,15 +79,6 @@ with spectrogram_tab:
     # Adjustable spectrogram parameters.
     window_length = st.slider("Window length (weeks)", 52, 156, 104)
     overlap = st.slider("Window overlap (weeks)", 0, window_length - 1, window_length // 2)
-
-    # Prepare weekly reservoir filling data.
-    filling = (
-        df.set_index("date_id")["fill_percentage"]
-        .astype(float)
-        .resample("W-SUN")
-        .mean()
-        .interpolate()
-    )
 
     # Calculate the spectrogram.
     frequencies, times, power = spectrogram(
