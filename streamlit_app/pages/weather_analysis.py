@@ -7,6 +7,7 @@ import requests
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import dct, idct
+from sklearn.neighbors import LocalOutlierFactor
 
 st.title("🌦️ Weather Analysis")
 st.write(
@@ -186,5 +187,49 @@ with spc_tab:
     st.dataframe(outliers, hide_index=True)
 
 with lof_tab:
-    st.subheader("Temperature Anomalies")
-    st.write("Local Outlier Factor analysis will appear here.")
+    st.subheader("Temperature Anomalies — LOF")
+
+    # Choose the expected proportion of anomalies.
+    outlier_fraction = st.slider(
+        "Outlier proportion",
+        0.01, 0.10, 0.01, 0.01,
+        format="%.2f"
+    )
+
+    # Detect unusual temperatures using Local Outlier Factor.
+    lof = LocalOutlierFactor(
+        n_neighbors=20,
+        contamination=outlier_fraction
+    )
+
+    mask = lof.fit_predict(daily_weather[["temperature_c"]]) == -1
+    anomalies = daily_weather.loc[
+        mask, ["time", "temperature_c"]
+    ]
+
+    # Plot daily temperatures and highlight anomalies.
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(
+        daily_weather["time"],
+        daily_weather["temperature_c"],
+        label="Average daily temperature"
+    )
+    ax.scatter(
+        anomalies["time"],
+        anomalies["temperature_c"],
+        color="red",
+        label="Anomalies",
+        zorder=3
+    )
+
+    ax.set_title(f"Temperature Anomalies — {region} (2024)")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Temperature (°C)")
+    ax.legend()
+    fig.tight_layout()
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+    st.metric("Anomalies detected", len(anomalies))
+    st.dataframe(anomalies, hide_index=True)
