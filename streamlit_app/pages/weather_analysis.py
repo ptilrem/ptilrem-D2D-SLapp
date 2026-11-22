@@ -122,21 +122,16 @@ st.caption(
     f"of {len(region_points):,} sampled locations."
 )
 
-# Prepare daily weather measurements for the analysis plots.
-daily_weather = (
-    weather.set_index("time")
-    .resample("D")
-    .agg({
-        "precipitation": "sum",
-        "temperature_2m": "mean"
-    })
-    .reset_index()
-)
 
-daily_weather = daily_weather.rename(columns={
+# Prepare the weather measurements for the analysis plots.
+hourly_weather = weather.rename(columns={
     "precipitation": "precipitation_mm",
     "temperature_2m": "temperature_c"
-})
+}).copy()
+
+hourly_weather["time"] = pd.to_datetime(
+    hourly_weather["time"], utc=True
+)
 
 # Separate tabs for the two weather analyses.
 spc_tab, lof_tab = st.tabs([
@@ -151,7 +146,7 @@ with spc_tab:
     cutoff = st.slider("DCT frequency cutoff", 1, 50, 12)
     n_std = st.slider("Standard deviations", 1.0, 5.0, 3.0, 0.5)
 
-    precipitation = daily_weather["precipitation_mm"].to_numpy()
+    precipitation = hourly_weather["precipitation_mm"].to_numpy()
 
     # Remove slow variations using the Discrete Cosine Transform.
     coefficients = dct(precipitation, norm="ortho")
@@ -168,19 +163,19 @@ with spc_tab:
 
     # Identify precipitation values outside the boundaries.
     mask = (precipitation < lower) | (precipitation > upper)
-    outliers = daily_weather.loc[
+    outliers = hourly_weather.loc[
         mask, ["time", "precipitation_mm"]
     ]
 
     # Display precipitation, SPC boundaries and detected outliers.
     fig, ax = plt.subplots(figsize=(12, 5))
     ax.plot(
-        daily_weather["time"],
+        hourly_weather["time"],
         precipitation,
-        label="Daily precipitation"
+        label="Hourly precipitation"
     )
-    ax.plot(daily_weather["time"], lower, "--", label="Lower SPC boundary")
-    ax.plot(daily_weather["time"], upper, "--", label="Upper SPC boundary")
+    ax.plot(hourly_weather["time"], lower, "--", label="Lower SPC boundary")
+    ax.plot(hourly_weather["time"], upper, "--", label="Upper SPC boundary")
     ax.scatter(
         outliers["time"],
         outliers["precipitation_mm"],
@@ -191,7 +186,7 @@ with spc_tab:
 
     ax.set_title(f"Precipitation Outliers — {region} (2024)")
     ax.set_xlabel("Date")
-    ax.set_ylabel("Precipitation (mm/day)")
+    ax.set_ylabel("Precipitation (mm per hour)")
     ax.legend()
     fig.tight_layout()
 
@@ -217,17 +212,17 @@ with lof_tab:
         contamination=outlier_fraction
     )
 
-    mask = lof.fit_predict(daily_weather[["temperature_c"]]) == -1
-    anomalies = daily_weather.loc[
+    mask = lof.fit_predict(hourly_weather[["temperature_c"]]) == -1
+    anomalies = hourly_weather.loc[
         mask, ["time", "temperature_c"]
     ]
 
     # Plot daily temperatures and highlight anomalies.
     fig, ax = plt.subplots(figsize=(12, 5))
     ax.plot(
-        daily_weather["time"],
-        daily_weather["temperature_c"],
-        label="Average daily temperature"
+        hourly_weather["time"],
+        hourly_weather["temperature_c"],
+        label="Hourly temperature"
     )
     ax.scatter(
         anomalies["time"],
