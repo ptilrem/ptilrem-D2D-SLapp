@@ -14,7 +14,7 @@ st.set_page_config(
 # Set up the pages with icons titles for the side bar
 home = st.Page("pages/home_content.py", title="Home", icon="🏠", default=True)
 table = st.Page("pages/reservoir_table.py", title="Reservoir Table", icon="📋")
-plots = st.Page("pages/reservoir_plot.py", title="Reservoir Plots", icon="📈")
+plots = st.Page("pages/reservoir_plots.py", title="Reservoir Plots", icon="📈")
 analysis = st.Page("pages/reservoir_analysis.py",title="Reservoir Analysis", icon="💧")
 weather = st.Page("pages/weather_analysis.py", title="Weather Analysis", icon="🌦️")
 flows = st.Page("pages/electricity_transfers.py", title="Cross-border Electricity Transfers", icon="📊")
