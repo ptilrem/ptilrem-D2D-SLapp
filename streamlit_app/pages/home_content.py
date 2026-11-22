@@ -10,7 +10,6 @@ st.write(
 
 st.divider()
 
-# Introduce the two main parts of the dashboard.
 left, right = st.columns(2, gap="large")
 
 with left:
@@ -19,13 +18,23 @@ with left:
         st.caption("NVE Magasinstatistikk API")
 
         st.write(
-            "Explore weekly Norwegian reservoir measurements "
-            "and compare different regions."
+            "Explore weekly Norwegian reservoir measurements, "
+            "compare regions, and investigate seasonal patterns."
         )
 
-        st.markdown("**Available pages:**")
-        st.write("📋 Reservoir Data Table")
-        st.write("📈 Reservoir Data Plots")
+        st.markdown("**Explore:**")
+        st.page_link(
+            "pages/reservoir_table.py",
+            label="📋 Reservoir Data Table"
+        )
+        st.page_link(
+            "pages/reservoir_plots.py",
+            label="📈 Reservoir Data Plots"
+        )
+        st.page_link(
+            "pages/reservoir_analysis.py",
+            label="🌊 Reservoir Analysis"
+        )
 
         st.caption(
             "Select EL, NO, or VASS to explore different area types."
@@ -34,21 +43,45 @@ with left:
 with right:
     with st.container(border=True):
         st.subheader("⚡ Electricity Transfers")
-        st.caption("ENTSO-E Transparency Platform")
+        st.caption("ENTSO-E / MongoDB Atlas")
 
         st.write(
-            "Explore real electricity imports and exports "
+            "Explore electricity imports and exports "
             "between Norway and neighbouring countries."
         )
 
-        st.markdown("**Available page:**")
-        st.write("📊 Cross-border Electricity Transfers")
+        st.markdown("**Explore:**")
+        st.page_link(
+            "pages/electricity_transfers.py",
+            label="📊 Cross-border Electricity Transfers"
+        )
 
         st.caption(
-            "Data processed with Spark and Cassandra, "
-            "then made available through MongoDB Atlas."
+            "Energy data processed with Spark and Cassandra, "
+            "then stored in MongoDB Atlas."
         )
+
+with st.container(border=True):
+    st.subheader("🌦️ Weather Analysis")
+    st.caption("Open-Meteo ERA5 Historical Weather")
+
+    st.write(
+        "Explore historical temperature and precipitation across "
+        "Norwegian regions. Detect precipitation outliers using "
+        "DCT/SPC and temperature anomalies using Local Outlier Factor."
+    )
+
+    st.page_link(
+        "pages/weather_analysis.py",
+        label="🌦️ Explore Weather Analysis"
+    )
+
+    st.caption(
+        "Select a region and adjust the analysis parameters "
+        "to investigate unusual weather observations."
+    )
 
 st.divider()
 
-st.info("👈 Use the sidebar to navigate between dashboard pages.")
+st.page_link("pages/about.py", label="ℹ️ About This Project")
+st.caption("You can also use the sidebar to navigate between pages.")
