@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.fft import dct, idct
 from sklearn.neighbors import LocalOutlierFactor
+from datetime import date
 
 st.title("Weather Analysis", icon=":material/partly_cloudy_day:")
 st.write(
@@ -112,12 +113,37 @@ def load_weather(region):
 # Let users explicitly load weather data instead of downloading automatically.
 st.subheader("Weather Data Settings", icon=":material/tune:")
 
+
 with st.form("weather_settings"):
     st.caption(f"Selected region: {region}")
+
+    # Choose the period of historical weather data.
+    col1, col2 = st.columns(2)
+
+    with col1:
+        start_date = st.date_input(
+            "Start date",
+            value=date(2024, 1, 1)
+        )
+
+    with col2:
+        end_date = st.date_input(
+            "End date",
+            value=date(2024, 12, 31)
+        )
+
+    # Choose how many sampled coordinates to use.
+    n_locations = st.selectbox(
+        "Number of locations",
+        options=[5, 10, 25, 50, 100],
+        index=0
+    )
+
     load_clicked = st.form_submit_button(
         "Load weather data",
         icon=":material/download:"
     )
+
 
 if load_clicked:
     try:
