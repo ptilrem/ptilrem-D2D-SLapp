@@ -192,8 +192,9 @@ if result is None or result["region"] != region:
 
 weather = result["weather"]
 n_locations = result["n_locations"]
-loaded_start = result["start_date"]
-loaded_end = result["end_date"]
+loaded_start = result.get("start_date", date(2024, 1, 1))
+loaded_end = result.get("end_date", date(2024, 12, 31))
+
 
 period_label = f"{loaded_start:%Y-%m-%d} to {loaded_end:%Y-%m-%d}"
 
