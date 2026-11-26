@@ -109,13 +109,41 @@ def load_weather(region):
     return weather, len(points)
 
 
-# Load the selected region's weather data.
-try:
-    with st.spinner("Loading historical ERA5 weather data..."):
-        weather, n_locations = load_weather(region)
-except requests.HTTPError as error:
-    st.error(f"Could not download weather data for {region}: {error}")
+# Let users explicitly load weather data instead of downloading automatically.
+st.subheader("Weather Data Settings", icon=":material/tune:")
+
+with st.form("weather_settings"):
+    st.caption(f"Selected region: {region}")
+    load_clicked = st.form_submit_button(
+        "Load weather data",
+        icon=":material/download:"
+    )
+
+if load_clicked:
+    try:
+        with st.spinner("Loading historical ERA5 weather data..."):
+            weather, n_locations = load_weather(region)
+
+        # Keep the results when users adjust the analysis sliders.
+        st.session_state["weather_result"] = {
+            "region": region,
+            "weather": weather,
+            "n_locations": n_locations
+        }
+
+    except requests.RequestException as error:
+        st.error(f"Could not load weather data: {error}")
+        st.stop()
+
+# Only display analyses when data for the selected region is available.
+result = st.session_state.get("weather_result")
+
+if result is None or result["region"] != region:
+    st.info("Click 'Load weather data' to display the analyses.")
     st.stop()
+
+weather = result["weather"]
+n_locations = result["n_locations"]
 
 st.caption(
     f"Region: {region}. Hourly ERA5 data averaged over {n_locations} "
