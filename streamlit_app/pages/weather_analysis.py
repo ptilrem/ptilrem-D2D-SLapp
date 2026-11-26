@@ -174,7 +174,9 @@ if load_clicked:
         st.session_state["weather_result"] = {
             "region": region,
             "weather": weather,
-            "n_locations": n_locations
+            "n_locations": n_locations,
+            "start_date": start_date,
+            "end_date": end_date
         }
 
     except (requests.RequestException, ValueError) as error:
@@ -190,9 +192,14 @@ if result is None or result["region"] != region:
 
 weather = result["weather"]
 n_locations = result["n_locations"]
+loaded_start = result["start_date"]
+loaded_end = result["end_date"]
+
+period_label = f"{loaded_start:%Y-%m-%d} to {loaded_end:%Y-%m-%d}"
 
 st.caption(
-    f"Region: {region}. Hourly ERA5 data averaged over {n_locations} "
+    f"Region: {region} | Period: {period_label} | "
+    f"Hourly ERA5 average across {n_locations} "
     f"of {len(region_points):,} sampled locations."
 )
 
@@ -258,7 +265,7 @@ with spc_tab:
         zorder=3
     )
 
-    ax.set_title(f"Precipitation Outliers — {region} (2024)")
+    ax.set_title(f"Precipitation Outliers — {region} ({period_label})")
     ax.set_xlabel("Date")
     ax.set_ylabel("Precipitation (mm per hour)")
     ax.legend()
@@ -306,7 +313,7 @@ with lof_tab:
         zorder=3
     )
 
-    ax.set_title(f"Temperature Anomalies — {region} (2024)")
+    ax.set_title(f"Temperature Anomalies — {region} ({period_label})")
     ax.set_xlabel("Date")
     ax.set_ylabel("Temperature (°C)")
     ax.legend()
