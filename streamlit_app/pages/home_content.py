@@ -92,4 +92,4 @@ st.page_link(
     "pages/about.py", 
     label="About This Project", 
     icon=":material/info:")
-st.caption("You can also use the sidebar to navigate between pages.")
+st.caption(":material/arrow_back: You can also use the sidebar to navigate between pages.")
