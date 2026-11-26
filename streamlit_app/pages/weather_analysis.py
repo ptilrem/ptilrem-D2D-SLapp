@@ -58,7 +58,7 @@ else:
 
 # Download and average historical ERA5 weather for the selected region.
 @st.cache_data
-def load_weather(region):
+def load_weather(region, start_date, end_date, n_locations):
     # Use saved 100-location ERA5 data when available.
     saved_file = (
         Path(__file__).resolve().parents[2]
@@ -66,22 +66,40 @@ def load_weather(region):
         / f"weather_{region}_2024_100locations.parquet"
     )
 
-    if saved_file.exists():
+    # Reuse saved data only when the settings match exactly.
+    if (
+        start_date == date(2024, 1, 1)
+        and end_date == date(2024, 12, 31)
+        and n_locations == 100
+        and saved_file.exists()
+    ):
         return pd.read_parquet(saved_file), 100
 
+    # Prevent accidentally requesting excessive amounts of API data.
+    if start_date > end_date:
+        raise ValueError("The start date must be before the end date.")
+
+    days = (end_date - start_date).days + 1
+
+    if days * n_locations > 2000:
+        raise ValueError(
+            "This request is too large. Choose fewer locations "
+            "or a shorter date range."
+        )
+
     if region == "Norway":
-        # Use one location from each electricity region.
+        # Sample equally from the five electricity regions.
         points = locations[
             locations["area"].str.startswith("NO")
-        ].groupby("area").head(1)
+        ].groupby("area").head(n_locations // 5)
     else:
-        points = locations[locations["area"] == region].head(5)
+        points = locations[locations["area"] == region].head(n_locations)
 
     params = {
         "latitude": ",".join(points["latitude"].astype(str)),
         "longitude": ",".join(points["longitude"].astype(str)),
-        "start_date": "2024-01-01",
-        "end_date": "2024-12-31",
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "hourly": "temperature_2m,precipitation",
         "models": "era5",
         "timezone": "UTC"
@@ -136,7 +154,7 @@ with st.form("weather_settings"):
     n_locations = st.selectbox(
         "Number of locations",
         options=[5, 10, 25, 50, 100],
-        index=0
+        index=4 if region in ["NO1", "NO2", "NO3"] else 0
     )
 
     load_clicked = st.form_submit_button(
@@ -148,7 +166,9 @@ with st.form("weather_settings"):
 if load_clicked:
     try:
         with st.spinner("Loading historical ERA5 weather data..."):
-            weather, n_locations = load_weather(region)
+            weather, n_locations = load_weather(
+                region, start_date, end_date, n_locations
+            )
 
         # Keep the results when users adjust the analysis sliders.
         st.session_state["weather_result"] = {
@@ -157,7 +177,7 @@ if load_clicked:
             "n_locations": n_locations
         }
 
-    except requests.RequestException as error:
+    except (requests.RequestException, ValueError) as error:
         st.error(f"Could not load weather data: {error}")
         st.stop()
 
