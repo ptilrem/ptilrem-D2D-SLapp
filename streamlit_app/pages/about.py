@@ -1,7 +1,7 @@
 """Assignment context and project links, moved from the original fourth page."""
 import streamlit as st
 
-st.title("ℹ️ About This Project")
+st.title("About This Project", icon=":material/info:")
 st.write(
     "This app is part of IND320's four-part course project. It explores weekly "
     "Norwegian hydropower reservoir statistics and cross-border electricity transfers."

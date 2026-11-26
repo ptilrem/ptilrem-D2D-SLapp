@@ -4,7 +4,7 @@ import plotly.express as px
 import streamlit as st
 from utils.dataLoader import DataLoader
 
-st.title("📈 Reservoir Data Plots")
+st.title("Reservoir Data Plots", icon=":material/monitoring:")
 loader = DataLoader()
 
 try:

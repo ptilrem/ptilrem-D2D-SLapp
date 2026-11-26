@@ -7,7 +7,7 @@ import streamlit as st
 # more customization in the future, and also keeps the file names cleaner imo
 st.set_page_config(
     page_title = "Assignment Dashboard",
-    page_icon = "🏠",
+    page_icon=":material/electric_bolt:",
     layout = "wide" # Makes the app use the full width of the browser
 )
 

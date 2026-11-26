@@ -9,7 +9,7 @@ import numpy as np
 from scipy.fft import dct, idct
 from sklearn.neighbors import LocalOutlierFactor
 
-st.title("🌦️ Weather Analysis")
+st.title("Weather Analysis", icon=":material/partly_cloudy_day:")
 st.write(
     "Explore precipitation outliers and temperature anomalies "
     "using historical ERA5 weather data."

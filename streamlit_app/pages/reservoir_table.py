@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from utils.dataLoader import DataLoader
 
-st.title("📋 Reservoir Data Table")
+st.title("Reservoir Data Table", icon=":material/table_chart:")
 loader = DataLoader()
 
 try:

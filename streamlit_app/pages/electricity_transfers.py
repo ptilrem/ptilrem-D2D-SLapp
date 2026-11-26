@@ -5,7 +5,7 @@ import plotly.express as px
 import streamlit as st
 from pymongo import MongoClient
 
-st.title("⚡ Cross-border Electricity Transfers")
+st.title("Electricity Transfers", icon=":material/electric_bolt:")
 
 # Production credentials must be entered in Streamlit Cloud's Secrets settings.
 try:

@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-st.title("⚡ Norwegian Electricity Dashboard")
+st.title("Norwegian Electricity Dashboard", icon=":material/electric_bolt:")
 st.write(
     "Explore Norwegian hydropower reservoir statistics and "
     "cross-border electricity transfers using real energy data."
@@ -14,7 +14,7 @@ left, right = st.columns(2, gap="large")
 
 with left:
     with st.container(border=True):
-        st.subheader("💧 Reservoir Statistics")
+        st.subheader(":material/water_drop: Reservoir Statistics")
         st.caption("NVE Magasinstatistikk API")
 
         st.write(
@@ -25,15 +25,18 @@ with left:
         st.markdown("**Explore:**")
         st.page_link(
             "pages/reservoir_table.py",
-            label="📋 Reservoir Data Table"
+            label="Reservoir Data Table",
+            icon=":material/table_chart:"
         )
         st.page_link(
             "pages/reservoir_plots.py",
-            label="📈 Reservoir Data Plots"
+            label="Reservoir Data Plots",
+            icon=":material/monitoring:"
         )
         st.page_link(
             "pages/reservoir_analysis.py",
-            label="🌊 Reservoir Analysis"
+            label="Reservoir Analysis",
+            icon=":material/water_drop:"
         )
 
         st.caption(
@@ -42,7 +45,7 @@ with left:
 
 with right:
     with st.container(border=True):
-        st.subheader("⚡ Electricity Transfers")
+        st.subheader(":material/electric_bolt: Electricity Transfers")
         st.caption("ENTSO-E / MongoDB Atlas")
 
         st.write(
@@ -53,7 +56,8 @@ with right:
         st.markdown("**Explore:**")
         st.page_link(
             "pages/electricity_transfers.py",
-            label="📊 Cross-border Electricity Transfers"
+            label="Cross-border Electricity Transfers",
+            icon=":material/electric_bolt:"
         )
 
         st.caption(
@@ -62,7 +66,7 @@ with right:
         )
 
 with st.container(border=True):
-    st.subheader("🌦️ Weather Analysis")
+    st.subheader(":material/partly_cloudy_day: Weather Analysis")
     st.caption("Open-Meteo ERA5 Historical Weather")
 
     st.write(
@@ -73,7 +77,8 @@ with st.container(border=True):
 
     st.page_link(
         "pages/weather_analysis.py",
-        label="🌦️ Explore Weather Analysis"
+        label="Explore Weather Analysis",   
+        icon=":material/partly_cloudy_day:"
     )
 
     st.caption(
@@ -83,5 +88,8 @@ with st.container(border=True):
 
 st.divider()
 
-st.page_link("pages/about.py", label="ℹ️ About This Project")
+st.page_link(
+    "pages/about.py", 
+    label="About This Project", 
+    icon=":material/info:")
 st.caption("You can also use the sidebar to navigate between pages.")

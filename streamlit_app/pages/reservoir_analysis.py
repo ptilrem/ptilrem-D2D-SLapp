@@ -7,7 +7,7 @@ from statsmodels.tsa.seasonal import STL
 import pandas as pd
 from scipy.signal import spectrogram
 
-st.title("💧 Reservoir Analysis")
+st.title("Reservoir Analysis", icon=":material/water_drop:")
 
 # Reuse the NVE data loader from the existing reservoir pages.
 df = DataLoader().load()
