@@ -13,6 +13,7 @@ st.set_page_config(
 
 # Set up the pages with icons titles for the side bar
 home = st.Page("pages/home_content.py", title="Home", icon=":material/home:", default=True)
+map_page = st.Page("pages/interactive_map.py", title="Interactive Map", icon=":material/map:")
 table = st.Page("pages/reservoir_table.py", title="Reservoir Table", icon=":material/table_chart:")
 plots = st.Page("pages/reservoir_plots.py", title="Reservoir Plots", icon=":material/monitoring:")
 analysis = st.Page("pages/reservoir_analysis.py",title="Reservoir Analysis", icon=":material/water_drop:")
@@ -21,5 +22,5 @@ flows = st.Page("pages/electricity_transfers.py", title="Cross-border Electricit
 about = st.Page("pages/about.py", title="About", icon=":material/info:")
 
 # Order the pages in the sidebar
-navigation = st.navigation([home, table, plots, analysis, weather, flows, about])
+navigation = st.navigation([home, map_page, table, plots, analysis, weather, flows, about])
 navigation.run()
