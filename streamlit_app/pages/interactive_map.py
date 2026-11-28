@@ -1,4 +1,4 @@
-"""Interactive map of Norway's price areas, water areas, and weekly weather."""
+"""Interactive map of NVE EL, VASS and NO areas, reservoir filling and weather."""
 
 import copy
 import json
@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GEOJSON_DIR = ROOT / "data" / "geojson"
 PRICE_GEOJSON_PATH = GEOJSON_DIR / "price_areas.geojson"
 WATER_GEOJSON_PATH = GEOJSON_DIR / "water_areas.geojson"
+NORWAY_GEOJSON_PATH = GEOJSON_DIR / "norway.geojson"
 
 WEATHER_REGIONS = ["NO1", "NO2", "NO3", "NO4", "NO5"]
 WEATHER_MODES = ["Temperature", "Precipitation"]
@@ -47,7 +48,7 @@ def load_geojson(path):
 
 @st.cache_data(ttl=3600)
 def load_reservoir_filling():
-    """Download NVE weekly reservoir filling for EL and VASS areas."""
+    """Download NVE weekly reservoir filling for EL, VASS and NO areas."""
     url = (
         "https://biapi.nve.no/magasinstatistikk/api/"
         "Magasinstatistikk/HentOffentligData"
@@ -56,7 +57,7 @@ def load_reservoir_filling():
     response.raise_for_status()
     data = pd.DataFrame(response.json())
 
-    data = data[data["omrType"].isin(["EL", "VASS"])].copy()
+    data = data[data["omrType"].isin(["EL", "VASS", "NO"])].copy()
     data["date"] = pd.to_datetime(data["dato_Id"])
     for column in ["omrnr", "fyllingsgrad", "iso_aar", "iso_uke"]:
         data[column] = pd.to_numeric(data[column])
@@ -176,31 +177,47 @@ def show_color_legend(mode, minimum=None, maximum=None):
 # -----------------------------------------------------------------------------
 st.title("Interactive Map", icon=":material/map:")
 st.write(
-    "Explore electricity price areas, grouped water areas, reservoir filling, "
-    "and historical weather."
+    "Explore NVE electricity price areas (EL), water areas (VASS), "
+    "and Norway as a whole (NO), with reservoir filling and historical weather."
 )
 
 price_areas = load_geojson(str(PRICE_GEOJSON_PATH))
 water_areas = load_geojson(str(WATER_GEOJSON_PATH))
+norway_area = load_geojson(str(NORWAY_GEOJSON_PATH))
 
 # Preserve existing electricity-area selection for use on other pages.
 if "map_selected_region" not in st.session_state:
     st.session_state["map_selected_region"] = None
 if "map_selected_water_area" not in st.session_state:
     st.session_state["map_selected_water_area"] = None
+if "map_selected_country" not in st.session_state:
+    st.session_state["map_selected_country"] = None
 
+boundary_options = ["Electricity price areas", "Water areas", "Norway"]
+previous_boundary = st.session_state.get(
+    "map_boundary_mode", "Electricity price areas"
+)
 boundary_mode = st.radio(
     "Geographic areas",
-    ["Electricity price areas", "Water areas"],
+    boundary_options,
+    index=(boundary_options.index(previous_boundary)
+           if previous_boundary in boundary_options else 0),
     horizontal=True,
 )
+# Store this outside the radio's widget state so it survives page changes.
+st.session_state["map_boundary_mode"] = boundary_mode
 is_water = boundary_mode == "Water areas"
+is_country = boundary_mode == "Norway"
 
-area_type = "VASS" if is_water else "EL"
-map_areas = water_areas if is_water else price_areas
+area_type = "NO" if is_country else "VASS" if is_water else "EL"
+map_areas = norway_area if is_country else water_areas if is_water else price_areas
 region_field = "water_area" if is_water else "region"
-selection_key = "map_selected_water_area" if is_water else "map_selected_region"
-layer_id = "water-areas" if is_water else "price-areas"
+selection_key = (
+    "map_selected_country" if is_country
+    else "map_selected_water_area" if is_water
+    else "map_selected_region"
+)
+layer_id = "norway-area" if is_country else "water-areas" if is_water else "price-areas"
 
 try:
     reservoir_data = load_reservoir_filling()
@@ -208,16 +225,15 @@ except (requests.RequestException, ValueError) as error:
     st.error(f"Could not load reservoir statistics: {error}")
     st.stop()
 
-# The water-area mode has VASS filling measurements, but no cached weather
-# observations for these grouped polygons; do not mislabel NO1–NO5 weather.
+# Weather was sampled by price area, not VASS or the national polygon.
 color_options = (
     ["Reservoir filling"]
-    if is_water else
+    if is_water or is_country else
     ["Reservoir filling", "Electricity price area", "Temperature", "Precipitation"]
 )
 color_mode = st.radio("Colour areas by", color_options, horizontal=True)
 
-# Keep EL and VASS measurements separate before choosing a date.
+# Keep EL, VASS and NO measurements separate before choosing a date.
 area_data = reservoir_data[reservoir_data["omrType"] == area_type]
 weekly_weather = pd.DataFrame()
 date_source = area_data
@@ -284,10 +300,16 @@ if color_mode in WEATHER_MODES:
 colored_areas = copy.deepcopy(map_areas)
 for feature in colored_areas["features"]:
     region = feature["properties"][region_field]
-    area_number = (
-        WATER_AREA_NUMBERS[region] if is_water else int(region.replace("NO", ""))
-    )
-    filling = filling_by_area.get(area_number)
+    if is_country:
+        # NVE publishes one national NO series. Read its area number from
+        # the API rather than guessing whether it is 0 or 1.
+        filling = next(iter(filling_by_area.values()), None)
+    else:
+        area_number = (
+            WATER_AREA_NUMBERS[region] if is_water
+            else int(region.replace("NO", ""))
+        )
+        filling = filling_by_area.get(area_number)
 
     if color_mode == "Electricity price area":
         fill_color = AREA_COLORS[region]
@@ -366,18 +388,33 @@ event = st.pydeck_chart(
     use_container_width=True,
     on_select="rerun",
     selection_mode="single-object",
-    key="water_area_map" if is_water else "price_area_map",
+    key=("norway_map" if is_country else
+         "water_area_map" if is_water else "price_area_map"),
 )
 selected_indices = event.selection.indices.get(layer_id, [])
 if selected_indices:
     index = selected_indices[0]
     region = map_areas["features"][index]["properties"][region_field]
-    if region != st.session_state[selection_key]:
+
+    # The non-widget keys below are shared by all NVE pages. Clicking the
+    # map updates both the area type radio and the area number selector.
+    selected_area_number = (
+        int(weekly_data["omrnr"].iloc[0]) if is_country else
+        WATER_AREA_NUMBERS[region] if is_water else
+        int(region.replace("NO", ""))
+    )
+    if (
+        region != st.session_state[selection_key]
+        or st.session_state.get("nve_area_type") != area_type
+        or st.session_state.get("nve_area_number") != selected_area_number
+    ):
         st.session_state[selection_key] = region
+        st.session_state["nve_area_type"] = area_type
+        st.session_state["nve_area_number"] = selected_area_number
         st.rerun()
 
 if st.session_state[selection_key]:
-    label = "water area" if is_water else "electricity area"
+    label = "national area" if is_country else "water area" if is_water else "electricity area"
     st.success(f"Selected {label}: {st.session_state[selection_key]}")
 else:
     st.info("Click an area on the map to select it.")
@@ -393,7 +430,12 @@ elif color_mode == "Temperature":
 else:
     st.caption("Light grey indicates drier weeks; blue indicates wetter weeks.")
 
-if is_water:
+if is_country:
+    st.caption(
+        "National outline: dissolved electricity price-area polygons from "
+        "the instructor-provided shapefile. Filling values: NVE Magasinstatistikk NO."
+    )
+elif is_water:
     st.caption(
         "Water-area polygons: East (RØ + RS), West (RV), North (RM + RN), "
         "combined from the shapefile supplied for the assignment. "
