@@ -15,7 +15,7 @@ import streamlit as st
 # -----------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parents[2]
 GEOJSON_PATH = ROOT / "data" / "geojson" / "price_areas.geojson"
-WEATHER_REGIONS = ["NO1", "NO2", "NO3"]  # Saved ERA5 data for 2024
+WEATHER_REGIONS = ["NO1", "NO2", "NO3", "NO4", "NO5"]
 WEATHER_MODES = ["Temperature", "Precipitation"]
 MISSING_COLOR = [150, 150, 150, 100]
 
