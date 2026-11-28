@@ -142,6 +142,66 @@ def weather_color(value, minimum, maximum, mode):
     ]
 
 
+def show_color_legend(mode, minimum=None, maximum=None):
+    """Display a colour legend matching the active map mode."""
+
+    st.markdown("**Colour legend**")
+
+    if mode == "Electricity price area":
+        values = list(AREA_COLORS.items())
+        colors = [color for _, color in values]
+        labels = [region for region, _ in values]
+
+    else:
+        if mode == "Reservoir filling":
+            values = [0, 0.25, 0.5, 0.75, 1]
+            colors = [filling_color(value) for value in values]
+            labels = [f"{value:.0%}" for value in values]
+
+        else:
+            if minimum is None or maximum is None:
+                return
+
+            values = [
+                minimum + (maximum - minimum) * i / 4
+                for i in range(5)
+            ]
+
+            colors = [
+                weather_color(value, minimum, maximum, mode)
+                for value in values
+            ]
+
+            unit = "°C" if mode == "Temperature" else "mm"
+            labels = [f"{value:.1f} {unit}" for value in values]
+
+    columns = st.columns(5)
+
+    for column, color, label in zip(columns, colors, labels):
+        red, green, blue, alpha = color
+
+        with column:
+            st.markdown(
+                f"""
+                <div style="
+                    background-color: rgba(
+                        {red}, {green}, {blue}, {alpha / 255}
+                    );
+                    height: 20px;
+                    border-radius: 4px;
+                "></div>
+                """,
+                unsafe_allow_html=True
+            )
+            st.caption(label)
+
+    if mode in WEATHER_MODES:
+        st.caption(
+            "Grey regions have no saved weather measurements. "
+            "Weather colours use the same scale across 2024."
+        )
+
+
 # -----------------------------------------------------------------------------
 # Page controls and selected week's data
 # -----------------------------------------------------------------------------
@@ -351,6 +411,12 @@ if st.session_state["map_selected_region"]:
     )
 else:
     st.info("Click an electricity area on the map to select it.")
+
+show_color_legend(
+    color_mode,
+    minimum=weather_min,
+    maximum=weather_max
+)
 
 if color_mode == "Reservoir filling":
     st.caption(
