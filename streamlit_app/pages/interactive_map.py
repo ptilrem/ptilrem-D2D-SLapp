@@ -116,6 +116,20 @@ except (requests.RequestException, ValueError) as error:
     st.stop()
 
 
+color_mode = st.radio(
+    "Colour areas by",
+    [
+        "Reservoir filling",
+        "Electricity price area",
+        "Temperature",
+        "Precipitation"
+    ],
+    horizontal=True
+)
+
+weather_modes = ["Temperature", "Precipitation"]
+
+
 # Load weather only when a weather-based colour mode is selected.
 weekly_weather = (
     load_weekly_weather()
@@ -153,19 +167,6 @@ if len(available_dates) == 0:
     st.warning("No matching reservoir and weather weeks found.")
     st.stop()
 
-
-color_mode = st.radio(
-    "Colour areas by",
-    [
-        "Reservoir filling",
-        "Electricity price area",
-        "Temperature",
-        "Precipitation"
-    ],
-    horizontal=True
-)
-
-weather_modes = ["Temperature", "Precipitation"]
 
 selected_date = st.selectbox(
     "Reservoir reporting week",
