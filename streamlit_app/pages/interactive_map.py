@@ -183,6 +183,14 @@ filling_by_area = (
     weekly_data.set_index("omrnr")["fyllingsgrad"].to_dict()
 )
 
+# Get the ISO year and week of the selected reservoir observation.
+# These are used to match the hourly weather data aggregated into weeks.
+selected_iso_year = int(weekly_data["iso_aar"].iloc[0])
+selected_iso_week = int(weekly_data["iso_uke"].iloc[0])
+
+# Prepare regional weather values when a weather mode is selected.
+weather_by_area = {}
+weather_min = weather_max = None
 
 if color_mode in weather_modes:
     property_column = (
