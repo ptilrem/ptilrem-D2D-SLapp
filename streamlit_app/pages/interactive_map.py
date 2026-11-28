@@ -7,6 +7,10 @@ from pathlib import Path
 import streamlit as st
 import pydeck as pdk
 
+import copy
+import pandas as pd
+import requests
+
 st.title("Interactive Map", icon=":material/map:")
 st.write(
     "Explore Norwegian electricity price areas and their "
@@ -32,16 +36,97 @@ price_areas = load_geojson(str(GEOJSON_PATH))
 if "map_selected_region" not in st.session_state:
     st.session_state["map_selected_region"] = None
 
+
+@st.cache_data(ttl=3600)
+def load_reservoir_filling():
+    """Download weekly filling measurements for electricity areas."""
+
+    url = (
+        "https://biapi.nve.no/magasinstatistikk/api/"
+        "Magasinstatistikk/HentOffentligData"
+    )
+
+    response = requests.get(url, timeout=60)
+    response.raise_for_status()
+
+    data = pd.DataFrame(response.json())
+
+    # Keep electricity-area measurements only.
+    data = data[data["omrType"] == "EL"].copy()
+    data["date"] = pd.to_datetime(data["dato_Id"])
+    data["omrnr"] = pd.to_numeric(data["omrnr"])
+    data["fyllingsgrad"] = pd.to_numeric(data["fyllingsgrad"])
+
+    return data
+
+
+try:
+    reservoir_data = load_reservoir_filling()
+except (requests.RequestException, ValueError) as error:
+    st.error(f"Could not load reservoir statistics: {error}")
+    st.stop()
+
+# Let the user choose an actual reporting date from the dataset.
+available_dates = sorted(
+    reservoir_data["date"].dropna().unique(),
+    reverse=True
+)
+
+selected_date = st.selectbox(
+    "Reservoir reporting week",
+    options=available_dates,
+    format_func=lambda d: pd.Timestamp(d).strftime("%d %B %Y")
+)
+
+# Get filling percentages for the selected week.
+weekly_data = reservoir_data[
+    reservoir_data["date"] == selected_date
+]
+
+filling_by_area = (
+    weekly_data.set_index("omrnr")["fyllingsgrad"].to_dict()
+)
+
+
+def filling_color(value):
+    """Return an RGBA colour based on reservoir filling (0–1)."""
+
+    return [
+        int(235 - 185 * value),  # Red decreases
+        int(110 + 55 * value),   # Green increases
+        int(65 + 155 * value),   # Blue increases
+        140                      # Transparency
+    ]
+
+
+# Copy the original boundaries so the cached data stays unchanged.
+colored_areas = copy.deepcopy(price_areas)
+
+for feature in colored_areas["features"]:
+    region = feature["properties"]["region"]
+    area_number = int(region.replace("NO", ""))
+
+    filling = filling_by_area.get(area_number)
+
+    if filling is not None and pd.notna(filling):
+        feature["properties"]["fill_color"] = filling_color(filling)
+        feature["properties"]["filling_label"] = f"{filling:.1%}"
+    else:
+        # Grey indicates missing measurements.
+        feature["properties"]["fill_color"] = [150, 150, 150, 100]
+        feature["properties"]["filling_label"] = "No data"
+
+
 # Draw semi-transparent polygons with visible outlines.
 layer = pdk.Layer(
     "GeoJsonLayer",
-    data=price_areas,
+    data=colored_areas,
     id="price-areas",
     filled=True,
     stroked=True,
     pickable=True,
     auto_highlight=True,
-    get_fill_color=[70, 130, 200, 70],
+    get_fill_color="properties.fill_color",
     get_line_color=[40, 70, 110, 255],
     line_width_min_pixels=2,
 )
@@ -87,9 +172,7 @@ deck = pdk.Deck(
     layers=layers,
     initial_view_state=view,
     map_style=None,
-    tooltip={
-        "text": "Electricity area: {region}"
-    },
+    tooltip={"text": "Electricity area: {region}\nReservoir filling: {filling_label}"},
 )
 
 # Allow users to select one polygon at a time.
