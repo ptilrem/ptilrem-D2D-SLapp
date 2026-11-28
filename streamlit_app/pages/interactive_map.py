@@ -28,6 +28,10 @@ def load_geojson(path):
 # Load the five electricity price-area polygons.
 price_areas = load_geojson(str(GEOJSON_PATH))
 
+# Remember the selected region across Streamlit pages.
+if "map_selected_region" not in st.session_state:
+    st.session_state["map_selected_region"] = None
+
 # Draw semi-transparent polygons with visible outlines.
 layer = pdk.Layer(
     "GeoJsonLayer",
@@ -42,6 +46,35 @@ layer = pdk.Layer(
     line_width_min_pixels=2,
 )
 
+# Display the normal price-area polygons.
+layers = [layer]
+
+# Draw a thicker outline around the selected area.
+selected_region = st.session_state["map_selected_region"]
+
+if selected_region is not None:
+    selected_features = [
+        feature for feature in price_areas["features"]
+        if feature["properties"]["region"] == selected_region
+    ]
+
+    if selected_features:
+        highlight_layer = pdk.Layer(
+            "GeoJsonLayer",
+            data={
+                "type": "FeatureCollection",
+                "features": selected_features
+            },
+            id="selected-area-outline",
+            filled=False,
+            stroked=True,
+            pickable=False,
+            get_line_color=[255, 160, 50, 255],
+            line_width_min_pixels=5
+        )
+
+        layers.append(highlight_layer)
+
 # Position the map to show mainland Norway.
 view = pdk.ViewState(
     latitude=64.5,
@@ -51,7 +84,7 @@ view = pdk.ViewState(
 )
 
 deck = pdk.Deck(
-    layers=[layer],
+    layers=layers,
     initial_view_state=view,
     map_style=None,
     tooltip={
@@ -59,7 +92,34 @@ deck = pdk.Deck(
     },
 )
 
-st.pydeck_chart(deck, use_container_width=True)
+# Allow users to select one polygon at a time.
+event = st.pydeck_chart(
+    deck,
+    use_container_width=True,
+    on_select="rerun",
+    selection_mode="single-object",
+    key="price_area_map"
+)
+
+# Get the selected polygon's index in the GeoJSON feature list.
+selected_indices = event.selection.indices.get("price-areas", [])
+
+if selected_indices:
+    selected_index = selected_indices[0]
+    region = price_areas["features"][selected_index]["properties"]["region"]
+
+    # Save changes and redraw the map with the new highlight.
+    if region != st.session_state["map_selected_region"]:
+        st.session_state["map_selected_region"] = region
+        st.rerun()
+
+# Show the current selection underneath the map.
+if st.session_state["map_selected_region"]:
+    st.success(
+        f"Selected electricity area: {st.session_state['map_selected_region']}"
+    )
+else:
+    st.info("Click an electricity area on the map to select it.")
 
 st.caption(
     "Electricity price-area boundaries from NVE Atlas. "
