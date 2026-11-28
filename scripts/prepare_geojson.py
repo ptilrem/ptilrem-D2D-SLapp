@@ -79,3 +79,39 @@ for archive_path in archives:
         print(f"Created: {output_path.relative_to(ROOT)}")
         print(f"Regions: {gdf['region'].tolist()}\n")
 
+
+# Combine the five supplied NVE regions into three water areas.
+admin_path = ROOT / "data" / "geojson" / "nve_admin_regions.geojson"
+water_path = ROOT / "data" / "geojson" / "water_areas.geojson"
+
+water_areas = gpd.read_file(admin_path)
+
+# Fix incorrectly decoded Norwegian character Ø.
+water_areas["region"] = water_areas["region"].replace({
+    "RÃ\x98": "RØ"
+})
+
+region_groups = {
+    "RØ": "East",
+    "RS": "East",
+    "RV": "West",
+    "RM": "North",
+    "RN": "North",
+}
+
+water_areas["water_area"] = water_areas["region"].map(region_groups)
+
+# Check that every original region was assigned to a group.
+if water_areas["water_area"].isna().any():
+    raise ValueError("Some NVE regions were not assigned to a water area.")
+
+# Merge polygons belonging to the same water area.
+water_areas = water_areas.dissolve(
+    by="water_area",
+    as_index=False
+)
+
+water_areas = water_areas[["water_area", "geometry"]]
+water_areas.to_file(water_path, driver="GeoJSON")
+
+print(f"Created {water_path} with {len(water_areas)} water areas.")
