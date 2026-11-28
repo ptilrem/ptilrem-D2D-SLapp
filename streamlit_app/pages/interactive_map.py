@@ -55,7 +55,7 @@ deck = pdk.Deck(
     initial_view_state=view,
     map_style=None,
     tooltip={
-        "text": "Electricity area: {properties.region}"
+        "text": "Electricity area: {region}"
     },
 )
 
