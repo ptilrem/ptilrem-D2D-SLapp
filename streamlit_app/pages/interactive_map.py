@@ -72,6 +72,12 @@ available_dates = sorted(
     reverse=True
 )
 
+color_mode = st.radio(
+    "Colour areas by",
+    ["Reservoir filling", "Electricity price area"],
+    horizontal=True
+)
+
 selected_date = st.selectbox(
     "Reservoir reporting week",
     options=available_dates,
@@ -102,17 +108,34 @@ def filling_color(value):
 # Copy the original boundaries so the cached data stays unchanged.
 colored_areas = copy.deepcopy(price_areas)
 
+# Distinct colours for identifying electricity price areas.
+area_colors = {
+    "NO1": [70, 130, 200, 140],
+    "NO2": [65, 170, 130, 140],
+    "NO3": [180, 115, 190, 140],
+    "NO4": [230, 160, 65, 140],
+    "NO5": [90, 175, 190, 140]
+}
+
+
 for feature in colored_areas["features"]:
     region = feature["properties"]["region"]
     area_number = int(region.replace("NO", ""))
 
     filling = filling_by_area.get(area_number)
 
-    if filling is not None and pd.notna(filling):
+    if color_mode == "Electricity price area":
+        # Each price area receives its own identifying colour.
+        feature["properties"]["fill_color"] = area_colors[region]
+        feature["properties"]["filling_label"] = "Not displayed"
+
+    elif filling is not None and pd.notna(filling):
+        # Colour by the selected week's reservoir filling.
         feature["properties"]["fill_color"] = filling_color(filling)
         feature["properties"]["filling_label"] = f"{filling:.1%}"
+
     else:
-        # Grey indicates missing measurements.
+        # Grey indicates missing reservoir measurements.
         feature["properties"]["fill_color"] = [150, 150, 150, 100]
         feature["properties"]["filling_label"] = "No data"
 
@@ -204,7 +227,19 @@ if st.session_state["map_selected_region"]:
 else:
     st.info("Click an electricity area on the map to select it.")
 
+if color_mode == "Reservoir filling":
+    st.caption(
+        "Colour scale: orange indicates lower reservoir filling, "
+        "while blue indicates higher filling."
+    )
+else:
+    st.caption(
+        "Each colour identifies a separate electricity price area. "
+        "Hover over a polygon to see its name."
+    )
+
 st.caption(
     "Electricity price-area boundaries from NVE Atlas. "
     "Hover over an area to see its identifier."
 )
+
