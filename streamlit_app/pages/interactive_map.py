@@ -56,8 +56,57 @@ def load_reservoir_filling():
     data["date"] = pd.to_datetime(data["dato_Id"])
     data["omrnr"] = pd.to_numeric(data["omrnr"])
     data["fyllingsgrad"] = pd.to_numeric(data["fyllingsgrad"])
+    data["iso_aar"] = pd.to_numeric(data["iso_aar"])
+    data["iso_uke"] = pd.to_numeric(data["iso_uke"])
 
     return data
+
+
+@st.cache_data
+def load_weekly_weather():
+    """Aggregate saved hourly ERA5 observations into Norwegian ISO weeks."""
+
+    weekly_frames = []
+
+    for region in ["NO1", "NO2", "NO3"]:
+        path = ROOT / "data" / f"weather_{region}_2024_100locations.parquet"
+
+        if not path.exists():
+            continue
+
+        weather = pd.read_parquet(path)
+
+        # Convert UTC observations to Norwegian local time.
+        weather["time"] = (
+            pd.to_datetime(weather["time"], utc=True)
+            .dt.tz_convert("Europe/Oslo")
+        )
+
+        # Use ISO year and week to match NVE reservoir reporting periods.
+        iso = weather["time"].dt.isocalendar()
+        weather["iso_year"] = iso.year
+        weather["iso_week"] = iso.week
+
+        weekly = (
+            weather.groupby(["iso_year", "iso_week"], as_index=False)
+            .agg(
+                temperature_c=("temperature_2m", "mean"),
+                precipitation_mm=("precipitation", "sum")
+            )
+        )
+
+        weekly["region"] = region
+        weekly_frames.append(weekly)
+
+    if not weekly_frames:
+        return pd.DataFrame()
+
+    return pd.concat(weekly_frames, ignore_index=True)
+
+weekly_weather = load_weekly_weather()
+
+st.subheader("Weekly Weather Data — Test")
+st.dataframe(weekly_weather.head(12), hide_index=True)
 
 
 try:
@@ -66,17 +115,57 @@ except (requests.RequestException, ValueError) as error:
     st.error(f"Could not load reservoir statistics: {error}")
     st.stop()
 
-# Let the user choose an actual reporting date from the dataset.
+
+# Load weather only when a weather-based colour mode is selected.
+weekly_weather = (
+    load_weekly_weather()
+    if color_mode in weather_modes
+    else pd.DataFrame()
+)
+
+date_source = reservoir_data
+
+if color_mode in weather_modes:
+    if weekly_weather.empty:
+        st.warning("No saved weather data is available.")
+        st.stop()
+
+    # Match NVE reporting weeks to the available 2024 ERA5 weeks.
+    weather_weeks = (
+        weekly_weather[weekly_weather["iso_year"] == 2024]
+        [["iso_year", "iso_week"]]
+        .drop_duplicates()
+    )
+
+    date_source = reservoir_data.merge(
+        weather_weeks,
+        left_on=["iso_aar", "iso_uke"],
+        right_on=["iso_year", "iso_week"],
+        how="inner"
+    )
+
 available_dates = sorted(
-    reservoir_data["date"].dropna().unique(),
+    date_source["date"].dropna().unique(),
     reverse=True
 )
 
+if len(available_dates) == 0:
+    st.warning("No matching reservoir and weather weeks found.")
+    st.stop()
+
+
 color_mode = st.radio(
     "Colour areas by",
-    ["Reservoir filling", "Electricity price area"],
+    [
+        "Reservoir filling",
+        "Electricity price area",
+        "Temperature",
+        "Precipitation"
+    ],
     horizontal=True
 )
+
+weather_modes = ["Temperature", "Precipitation"]
 
 selected_date = st.selectbox(
     "Reservoir reporting week",
@@ -94,6 +183,33 @@ filling_by_area = (
 )
 
 
+if color_mode in weather_modes:
+    property_column = (
+        "temperature_c"
+        if color_mode == "Temperature"
+        else "precipitation_mm"
+    )
+
+    # Retrieve regional measurements for the selected ISO week.
+    selected_weather = weekly_weather[
+        (weekly_weather["iso_year"] == selected_iso_year) &
+        (weekly_weather["iso_week"] == selected_iso_week)
+    ]
+
+    weather_by_area = (
+        selected_weather.set_index("region")[property_column].to_dict()
+    )
+
+    # Keep the colour scale consistent when switching weeks.
+    full_series = weekly_weather.loc[
+        weekly_weather["iso_year"] == 2024,
+        property_column
+    ].dropna()
+
+    weather_min = float(full_series.min())
+    weather_max = float(full_series.max())
+
+
 def filling_color(value):
     """Return an RGBA colour based on reservoir filling (0–1)."""
 
@@ -102,6 +218,32 @@ def filling_color(value):
         int(110 + 55 * value),   # Green increases
         int(65 + 155 * value),   # Blue increases
         140                      # Transparency
+    ]
+
+
+def weather_color(value, minimum, maximum, mode):
+    """Map weather measurements to semi-transparent RGB colours."""
+
+    # Scale the measurement between 0 and 1.
+    span = maximum - minimum
+    fraction = (value - minimum) / span if span > 0 else 0.5
+    fraction = max(0, min(1, fraction))
+
+    if mode == "Temperature":
+        # Blue = cold, orange/red = warm.
+        return [
+            int(60 + 175 * fraction),
+            int(140 - 60 * fraction),
+            int(230 - 165 * fraction),
+            140
+        ]
+
+    # Light grey = dry, blue = wet.
+    return [
+        int(228 - 170 * fraction),
+        int(229 - 85 * fraction),
+        int(232 - 12 * fraction),
+        140
     ]
 
 
@@ -125,19 +267,41 @@ for feature in colored_areas["features"]:
     filling = filling_by_area.get(area_number)
 
     if color_mode == "Electricity price area":
-        # Each price area receives its own identifying colour.
         feature["properties"]["fill_color"] = area_colors[region]
-        feature["properties"]["filling_label"] = "Not displayed"
+        label = region
 
-    elif filling is not None and pd.notna(filling):
-        # Colour by the selected week's reservoir filling.
-        feature["properties"]["fill_color"] = filling_color(filling)
-        feature["properties"]["filling_label"] = f"{filling:.1%}"
+    elif color_mode == "Reservoir filling":
+        if filling is not None and pd.notna(filling):
+            feature["properties"]["fill_color"] = filling_color(filling)
+            label = f"{filling:.1%}"
+        else:
+            feature["properties"]["fill_color"] = [150, 150, 150, 100]
+            label = "No data"
 
     else:
-        # Grey indicates missing reservoir measurements.
-        feature["properties"]["fill_color"] = [150, 150, 150, 100]
-        feature["properties"]["filling_label"] = "No data"
+        value = weather_by_area.get(region)
+
+        if value is not None and pd.notna(value):
+            feature["properties"]["fill_color"] = weather_color(
+                value, weather_min, weather_max, color_mode
+            )
+
+            unit = "°C" if color_mode == "Temperature" else "mm"
+            label = f"{value:.1f} {unit}"
+        else:
+            # We don't have saved 2024 weather for NO4/NO5 yet.
+            feature["properties"]["fill_color"] = [150, 150, 150, 100]
+            label = "No weather data"
+
+    feature["properties"]["value_label"] = label
+
+
+# Find the ISO week corresponding to the selected NVE observation.
+selected_iso_year = int(weekly_data["iso_aar"].iloc[0])
+selected_iso_week = int(weekly_data["iso_uke"].iloc[0])
+
+weather_by_area = {}
+weather_min = weather_max = None
 
 
 # Draw semi-transparent polygons with visible outlines.
@@ -195,7 +359,7 @@ deck = pdk.Deck(
     layers=layers,
     initial_view_state=view,
     map_style=None,
-    tooltip={"text": "Electricity area: {region}\nReservoir filling: {filling_label}"},
+    tooltip={"text": "Area: {region}\nValue: {value_label}"},
 )
 
 # Allow users to select one polygon at a time.
